@@ -1,5 +1,22 @@
 #!/bin/bash
 
+usage_exit() {
+  echo "Usage: $0 [-c country_code]" 1>&2
+  exit
+}
+
+while getopts c:h OPT
+do
+  case $OPT in
+    c) country_code=$OPTARG # ISO 3166-1alpha2
+      ;;
+    h) usage_exit
+      ;;
+    \?)
+      usage_exit
+  esac
+done
+
 getGeojson() {
   state=$1
   country=$2
@@ -20,6 +37,5 @@ getGeojson() {
   sleep 2
 }
 
-country_code=$1 # ISO 3166-1alpha2
 curl https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv | grep -i ${country_code}- | awk -F, '{print $4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson $line $country_code; done
 
