@@ -1,14 +1,18 @@
 #!/bin/bash
 
 usage_exit() {
-  echo "Usage: $0 [-c country_code]" 1>&2
+  echo "Usage: $0 [-d] [-c country_code]" 1>&2
   exit
 }
 
-while getopts c:h OPT
+DoDryRun=1
+dry_run_flag=0
+while getopts dc:h OPT
 do
   case $OPT in
     c) country_code=$OPTARG # ISO 3166-1alpha2
+      ;;
+    d) dry_run_flag=$DoDryRun
       ;;
     h) usage_exit
       ;;
@@ -31,7 +35,9 @@ getGeojson() {
 
   url="https://nominatim.openstreetmap.org/search?state=${state}&country=${country}&polygon_geojson=1&format=geojson"
   cmd="curl -Ss -o $output $url"
-  if [ -e $output ]; then
+  if [ $dry_run_flag -eq $DoDryRun ]; then
+    echo "[SKIP]    (do dry run) $cmd"
+  elif [ -e $output ]; then
     echo "[SKIP]    (exist) $output"
   else
     echo "[DOWNLOAD] $cmd"
