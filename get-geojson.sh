@@ -17,6 +17,8 @@ do
   esac
 done
 
+# TODO: $country_code validation
+
 getGeojson() {
   state=$1
   country=$2
@@ -28,14 +30,18 @@ getGeojson() {
   mkdir -p ${country}
 
   url="https://nominatim.openstreetmap.org/search?state=${state}&country=${country}&polygon_geojson=1&format=geojson"
-  cmd="curl -o $output $url"
-  echo $cmd
-  $cmd
+  cmd="curl -Ss -o $output $url"
+  if [ -e $output ]; then
+    echo "[SKIP]    (exist) $output"
+  else
+    echo "[DOWNLOAD] $cmd"
+    $cmd
 
-  # **Requirements** https://operations.osmfoundation.org/policies/nominatim/
-  # No heavy uses (an absolute maximum of 1 request per second).
-  sleep 2
+    # **Requirements** https://operations.osmfoundation.org/policies/nominatim/
+    # No heavy uses (an absolute maximum of 1 request per second).
+    sleep 2
+  fi
 }
 
-curl https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv | grep -i ${country_code}- | awk -F, '{print $4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson $line $country_code; done
+curl -Ss https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv | grep -i ${country_code}- | awk -F, '{print $4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson $line $country_code; done
 

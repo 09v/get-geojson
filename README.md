@@ -3,13 +3,18 @@
 ## Usage
 
 ```
-$ ./get-geojson.sh
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100 81486  100 81486    0     0  70734      0  0:00:01  0:00:01 --:--:-- 71920
-[Aichi]
-[Akita]
-[Aomori]
+$ ./get-geojson.sh -c jp
+------------------------------------------------------------------
+[state]   (Aichi)
+[country] (jp)
+[output]  (jp/Aichi.geojson)
+[DOWNLOAD] curl -Ss -o jp/Aichi.geojson https://nominatim.openstreetmap.org/search?state=Aichi&country=jp&polygon_geojson=1&format=geojson
+------------------------------------------------------------------
+[state]   (Akita)
+[country] (jp)
+[output]  (jp/Akita.geojson)
+[SKIP]    (exist) jp/Akita.geojson
+------------------------------------------------------------------
 :
 ```
 
