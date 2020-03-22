@@ -8,19 +8,27 @@
 # -----------------------------------------------------------------------------
 # parse option ...
 usage_exit() {
-  echo "Usage: $0 [-d] [-c country_code]" >&2
+  echo "Usage: $0 [-d] [-c country_code] [-o output_dir]" >&2
   exit
 }
+
 kDoDryRun=1
 gDryRunFlag=0
+
 kInvalidCountryCode="Invalid Country Code"
-country_code=$kInvalidCountryCode
-while getopts dc:h OPT
+gCountryCode=$kInvalidCountryCode
+
+kDefaultOutputDir=$PWD/_dump
+gOutputDir=$kDefaultOutputDir
+
+while getopts dc:o:h OPT
 do
   case $OPT in
-    c) country_code=$OPTARG # ISO 3166-1alpha2
-      ;;
     d) gDryRunFlag=$kDoDryRun
+      ;;
+    c) gCountryCode=$OPTARG # ISO 3166-1alpha2
+      ;;
+    o) gOutputDir=$OPTARG
       ;;
     h) usage_exit
       ;;
@@ -28,18 +36,22 @@ do
       usage_exit
   esac
 done
-if [ "$country_code" = "$kInvalidCountryCode" ]; then
+if [ "$gCountryCode" = "$kInvalidCountryCode" ]; then
   echo "[ERROR] -c option is required." >&2
   usage_exit
 fi
 
+echo "[-d] dry run      ($gDryRunFlag)"
+echo "[-c] country code ($gCountryCode)"
+echo "[-o] output dir   ($gOutputDir)"
+
 # -----------------------------------------------------------------------------
-# TODO: $country_code validation
+# TODO: country_code validation
 getGeojsonImpl() {
   region_code=$1
   state=$2
   country=$3
-  output="${country}/${region_code}.geojson"
+  output="${gOutputDir}/${country}/${region_code}.geojson"
   escaped_state=`perl -MURI::Escape -e "print uri_escape '${state}'"`
   echo "------------------------------------------------------------------"
   echo "[state]         (${state})"
@@ -47,7 +59,7 @@ getGeojsonImpl() {
   echo "[country]       (${country})"
   echo "[region_code]   (${region_code})"
   echo "[output]        (${output})"
-  mkdir -p ${country}
+  mkdir -p "${gOutputDir}/${country}"
 
   # 1st try [state=xxxx&country=YY]
   # 2nd try [q=xxxx+YY]
@@ -61,6 +73,7 @@ getGeojsonImpl() {
   else
     echo "[DOWNLOAD]      $cmd"
     $cmd
+    echo "==> $?"
 
     # **Requirements** https://operations.osmfoundation.org/policies/nominatim/
     # No heavy uses (an absolute maximum of 1 request per second).
@@ -88,6 +101,7 @@ getEQuestCsv() {
     cmd="curl -Ss -o $output https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv"
     echo "[DOWNLOAD] $cmd"
     $cmd
+    echo "==> $?"
   fi
 
   if [ $? -ne 0 ]; then
@@ -109,8 +123,7 @@ getGeojson() {
 # -----------------------------------------------------------------------------
 main() {
   getEQuestCsv
-  # cat eQuest.csv | grep -i ${country_code}- | awk -F, '{print $2,$4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson "$line" $country_code; done
-  getGeojson $country_code
+  getGeojson $gCountryCode
 }
 
 main
