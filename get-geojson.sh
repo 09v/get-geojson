@@ -49,5 +49,40 @@ getGeojson() {
   fi
 }
 
-curl -Ss https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv | grep -i ${country_code}- | awk -F, '{print $4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson $line $country_code; done
+# -----------------------------------------------------------------------------
+getEQuestCsv() {
+  # eQuest.csv sample
+  # ----------------------
+  #  :
+  # KI,,,Kiribati
+  # ,KI-G,,Gilbert Islands
+  # ,KI-L,,Line Islands
+  # ,KI-P,,Phoenix Islands
+  #  :
+  # JP,,,Japan
+  # ,JP-23,,Aiti [Aichi]
+  # ,JP-05,,Akita
+  output=eQuest.csv
+  if [ -e $output ]; then
+    echo "[SKIP]  (exist) $output"
+  else
+    cmd="curl -Ss -o $output https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv"
+    echo "[DOWNLOAD] $cmd"
+    $cmd
+  fi
+
+  if [ $? -ne 0 ]; then
+    echo "[ERROR] getEQuestCsv ..." >&2
+    exit 1
+  fi
+}
+
+# -----------------------------------------------------------------------------
+main() {
+  getEQuestCsv
+  echo $?
+  cat eQuest.csv | grep -i ${country_code}- | awk -F, '{print $4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson "$line" $country_code; done
+}
+
+main
 
