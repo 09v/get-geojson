@@ -1,18 +1,26 @@
 #!/bin/bash
 
+# -----------------------------------------------------------------------------
+# legend:
+# * global ... gXXX
+# * const  ... kXXX
+
+# -----------------------------------------------------------------------------
+# parse option ...
 usage_exit() {
-  echo "Usage: $0 [-d] [-c country_code]" 1>&2
+  echo "Usage: $0 [-d] [-c country_code]" >&2
   exit
 }
-
-DoDryRun=1
-dry_run_flag=0
+kDoDryRun=1
+gDryRunFlag=0
+kInvalidCountryCode="Invalid Country Code"
+country_code=$kInvalidCountryCode
 while getopts dc:h OPT
 do
   case $OPT in
     c) country_code=$OPTARG # ISO 3166-1alpha2
       ;;
-    d) dry_run_flag=$DoDryRun
+    d) gDryRunFlag=$kDoDryRun
       ;;
     h) usage_exit
       ;;
@@ -20,27 +28,38 @@ do
       usage_exit
   esac
 done
+if [ "$country_code" = "$kInvalidCountryCode" ]; then
+  echo "[ERROR] -c option is required." >&2
+  usage_exit
+fi
 
+# -----------------------------------------------------------------------------
 # TODO: $country_code validation
-
-getGeojson() {
-  state=$1
-  country=$2
-  output=${country}/${state}.geojson
+getGeojsonImpl() {
+  region_code=$1
+  state=$2
+  country=$3
+  output="${country}/${region_code}.geojson"
+  escaped_state=`perl -MURI::Escape -e "print uri_escape '${state}'"`
   echo "------------------------------------------------------------------"
-  echo "[state]   (${state})"
-  echo "[country] (${country})"
-  echo "[output]  (${output})"
+  echo "[state]         (${state})"
+  echo "[escaped_state] ($escaped_state)"
+  echo "[country]       (${country})"
+  echo "[region_code]   (${region_code})"
+  echo "[output]        (${output})"
   mkdir -p ${country}
 
-  url="https://nominatim.openstreetmap.org/search?state=${state}&country=${country}&polygon_geojson=1&format=geojson"
+  # 1st try [state=xxxx&country=YY]
+  # 2nd try [q=xxxx+YY]
+
+  url="https://nominatim.openstreetmap.org/search?state=${escaped_state}&country=${country}&polygon_geojson=1&format=geojson"
   cmd="curl -Ss -o $output $url"
-  if [ $dry_run_flag -eq $DoDryRun ]; then
-    echo "[SKIP]    (do dry run) $cmd"
+  if [ $gDryRunFlag -eq $kDoDryRun ]; then
+    echo "[DRY RUN]       $cmd"
   elif [ -e $output ]; then
-    echo "[SKIP]    (exist) $output"
+    echo "[SKIP] (exist)  ($output)"
   else
-    echo "[DOWNLOAD] $cmd"
+    echo "[DOWNLOAD]      $cmd"
     $cmd
 
     # **Requirements** https://operations.osmfoundation.org/policies/nominatim/
@@ -78,10 +97,20 @@ getEQuestCsv() {
 }
 
 # -----------------------------------------------------------------------------
+getGeojson() {
+  country_code=$1
+  cat eQuest.csv | grep -i ${country_code}- | awk -F, '{print $2, "@", $4}' | sed "s/.*\[//g" | sed "s/\]//g" > _tmp.csv
+  country=$1
+  cat _tmp.csv | while IFS=" @ " read key value; do
+    getGeojsonImpl $key "$value" $country
+  done
+}
+
+# -----------------------------------------------------------------------------
 main() {
   getEQuestCsv
-  echo $?
-  cat eQuest.csv | grep -i ${country_code}- | awk -F, '{print $4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson "$line" $country_code; done
+  # cat eQuest.csv | grep -i ${country_code}- | awk -F, '{print $2,$4}' | sed "s/.*\[//g" | sed "s/\]//g" | while read line; do getGeojson "$line" $country_code; done
+  getGeojson $country_code
 }
 
 main
