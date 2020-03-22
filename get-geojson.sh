@@ -55,22 +55,20 @@ getGeojsonImpl() {
   escaped_state=`perl -MURI::Escape -e "print uri_escape '${state}'"`
   echo "------------------------------------------------------------------"
   echo "[state]         (${state})"
-  echo "[escaped_state] ($escaped_state)"
+  echo "[escaped_state] (${escaped_state})"
   echo "[country]       (${country})"
   echo "[region_code]   (${region_code})"
   echo "[output]        (${output})"
   mkdir -p "${gOutputDir}/${country}"
 
   # 1st try [state=xxxx&country=YY]
-  # 2nd try [q=xxxx+YY]
-
-  url="https://nominatim.openstreetmap.org/search?state=${escaped_state}&country=${country}&polygon_geojson=1&format=geojson"
-  cmd="curl -Ss -o $output $url"
   if [ $gDryRunFlag -eq $kDoDryRun ]; then
     echo "[DRY RUN]       $cmd"
   elif [ -e $output ]; then
     echo "[SKIP] (exist)  ($output)"
   else
+    url="https://nominatim.openstreetmap.org/search?state=${escaped_state}&country=${country}&polygon_geojson=1&format=geojson"
+    cmd="curl -Ss -o $output $url"
     echo "[DOWNLOAD]      $cmd"
     $cmd
     echo "==> $?"
@@ -78,6 +76,18 @@ getGeojsonImpl() {
     # **Requirements** https://operations.osmfoundation.org/policies/nominatim/
     # No heavy uses (an absolute maximum of 1 request per second).
     sleep 2
+
+    # 2nd try [q=xxxx+YY]
+    grep '"features":\[\]' $output > /dev/null
+    if [ $? -eq 0 ]; then  # if hit "features:[]" // it mean no features
+      url="https://nominatim.openstreetmap.org/search?q=${escaped_state}+${country}&polygon_geojson=1&format=geojson"
+      cmd="curl -Ss -o $output $url"
+      echo "[DOWNLOAD]      $cmd"
+      $cmd
+      echo "==> $?"
+      sleep 2
+    fi
+
   fi
 }
 
