@@ -20,11 +20,24 @@ $ ./get-geojson.sh -c jp
 
 ## Requirements
 
+command:
+
 * bash
 * curl
 * grep
 * sed
 * awk
+* perl
+
+
+url:
 
 * access to https://raw.githubusercontent.com/olahol/iso-3166-2.json/master/data/eQuest.csv
 * access to https://nominatim.openstreetmap.org
+
+
+## Check environment
+
+* Windows 10 Home 1903
+* Git for Windows 2.21.0.windows.1
+
